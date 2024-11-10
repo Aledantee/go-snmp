@@ -123,24 +123,24 @@ func (t ObjectIdentifierType) ValidateValue(v Value) error {
 }
 func (t ObjectIdentifierType) sealed() {}
 
-type ObjectDescription struct{}
+type ObjectDescriptionType struct{}
 
-func (t ObjectDescription) String() string {
+func (t ObjectDescriptionType) String() string {
 	return "OBJECT DESCRIPTION"
 }
-func (t ObjectDescription) Tag() int {
+func (t ObjectDescriptionType) Tag() int {
 	return int(tagObjectDescription)
 }
-func (t ObjectDescription) Name() string {
+func (t ObjectDescriptionType) Name() string {
 	return "OCTET DESCRIPTION"
 }
-func (t ObjectDescription) Base() Type {
+func (t ObjectDescriptionType) Base() Type {
 	return t
 }
-func (t ObjectDescription) ValidateValue(v Value) error {
+func (t ObjectDescriptionType) ValidateValue(v Value) error {
 	return assertSameType(v.Type(), t)
 }
-func (t ObjectDescription) sealed() {}
+func (t ObjectDescriptionType) sealed() {}
 
 type IPAddressType struct{}
 
@@ -256,24 +256,24 @@ func (t Counter64Type) ValidateValue(v Value) error {
 }
 func (t Counter64Type) sealed() {}
 
-type UInteger23Type struct{}
+type UInteger32Type struct{}
 
-func (t UInteger23Type) String() string {
+func (t UInteger32Type) String() string {
 	return "UINTEGER32"
 }
-func (t UInteger23Type) Tag() int {
+func (t UInteger32Type) Tag() int {
 	return int(tagUTnteger32)
 }
-func (t UInteger23Type) Name() string {
+func (t UInteger32Type) Name() string {
 	return "UINTEGER32"
 }
-func (t UInteger23Type) Base() Type {
+func (t UInteger32Type) Base() Type {
 	return t
 }
-func (t UInteger23Type) ValidateValue(v Value) error {
+func (t UInteger32Type) ValidateValue(v Value) error {
 	return assertSameType(v.Type(), t)
 }
-func (t UInteger23Type) sealed() {}
+func (t UInteger32Type) sealed() {}
 
 type OpaqueFloatType struct{}
 
@@ -313,6 +313,31 @@ func (t OpaqueDoubleType) ValidateValue(v Value) error {
 }
 func (t OpaqueDoubleType) sealed() {}
 
+type NullType struct{}
+
+func (n NullType) String() string {
+	return "NULL"
+}
+func (n NullType) Tag() int {
+	return int(tagNull)
+}
+func (n NullType) Name() string {
+	return "NULL"
+}
+func (n NullType) Base() Type {
+	return n
+}
+
+func (n NullType) ValidateValue(v Value) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (n NullType) sealed() {
+	//TODO implement me
+	panic("implement me")
+}
+
 type typeTag int
 
 const (
@@ -328,8 +353,9 @@ const (
 	tagIpAddress         typeTag = 0x40
 	tagCounter32         typeTag = 0x41
 	tagGauge32           typeTag = 0x42
-	tagOpaque            typeTag = 0x43
-	tagNsapAddress       typeTag = 0x44
+	tagTimeTicks         typeTag = 0x43
+	tagOpaque            typeTag = 0x44
+	tagNsapAddress       typeTag = 0x45
 	tagCounter64         typeTag = 0x46
 	tagUTnteger32        typeTag = 0x47
 	tagOpaqueFloat       typeTag = 0x78
