@@ -454,13 +454,14 @@ func decodeBERLength(b []byte) (length int, offset int, _ error) {
 	}
 
 	// Short form - interpret the byte as the length and return it
-	if b[0] <= 0x7F {
+	// No check for negative values is needed as the first bit is by definition 0 for short form
+	if b[0] <= 0x7F { // 0x7F = 127 = 0111 1111
 		return int(b[0]), 1, nil
 	}
 
 	// Long form - interpret the byte as the number of bytes used to encode the length
 	// Then read the following bytes as the length
-	lengthLength := int(b[0] & 0x7f)
+	lengthLength := int(b[0] & 0x7f) // 0x7f = 0111 1111
 	if lengthLength > len(b)-1 {
 		return 0, 0, fmt.Errorf("length is longer than the remaining data: %d > %d", lengthLength, len(b)-1)
 	}
@@ -480,16 +481,75 @@ func decodeBERLength(b []byte) (length int, offset int, _ error) {
 	return length, lengthLength + 1, nil // +1 for the first byte indicating the long form
 }
 
+// decodeBERUint decodes a BER-encoded unsigned integer with the given size.
+func decodeBERUint(b []byte, size int) (uint64, error) {
+	length, offset, err := decodeBERLength(b)
+	if err != nil {
+		return 0, err
+	}
+
+	if length == 0 {
+		return 0, errors.New("zero-length integer")
+	} else if length > size {
+		return 0, fmt.Errorf("integer too large (%d bytes) to fit into integer of bit-size %d", length, size*8)
+	}
+
+	var value int64
+	for i := 0; i < length; i++ {
+		// Left shift the value by 8 bits and add the next byte
+		value = value<<8 | int64(b[offset+i])
+	}
+
+	return uint64(value), nil
+}
+
+// decodeBERInt decodes a BER-encoded integer with the given size.
+func decodeBERInt(b []byte, size int) (int64, error) {
+	length, offset, err := decodeBERLength(b)
+	if err != nil {
+		return 0, err
+	}
+
+	if length == 0 {
+		return 0, errors.New("zero-length integer")
+	} else if length > size {
+		return 0, fmt.Errorf("integer too large (%d bytes) to fit into integer of bit-size %d", length, size*8)
+	}
+
+	var value int64
+	for i := 0; i < length; i++ {
+		// Left shift the value by 8 bits and add the next byte
+		value = value<<8 | int64(b[offset+i])
+	}
+
+	// Sign-extend the value if necessary
+	if value&(1<<(8*length-1)) != 0 {
+		value |= -1 << (8 * length)
+	}
+
+	return value, nil
+}
+
 func decodeBERInt32(b []byte) (int32, error) {
-	return 0, errors.New("not implemented")
+	v, err := decodeBERInt(b, 4)
+	if err != nil {
+		return 0, err
+	}
+
+	return int32(v), nil
 }
 
 func decodeBERUint32(b []byte) (uint32, error) {
-	return 0, errors.New("not implemented")
+	v, err := decodeBERUint(b, 4)
+	if err != nil {
+		return 0, err
+	}
+
+	return uint32(v), nil
 }
 
 func decodeBERUint64(b []byte) (uint64, error) {
-	return 0, errors.New("not implemented")
+	return decodeBERUint(b, 8)
 }
 
 func decodeBERBytes(b []byte) ([]byte, error) {
