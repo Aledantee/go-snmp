@@ -494,13 +494,15 @@ func decodeBERUint(b []byte, size int) (uint64, error) {
 		return 0, fmt.Errorf("integer too large (%d bytes) to fit into integer of bit-size %d", length, size*8)
 	}
 
-	var value int64
+	var value uint64
 	for i := 0; i < length; i++ {
 		// Left shift the value by 8 bits and add the next byte
-		value = value<<8 | int64(b[offset+i])
+		value = value<<8 | uint64(b[offset+i])
 	}
 
-	return uint64(value), nil
+	fmt.Printf("value: %X\n", value)
+
+	return value, nil
 }
 
 // decodeBERInt decodes a BER-encoded integer with the given size.
