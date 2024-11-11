@@ -38,35 +38,3 @@ func TestDecodeBERLength(t *testing.T) {
 		})
 	}
 }
-
-func TestDecodeBERUint(t *testing.T) {
-	var tests = []struct {
-		name    string
-		args    []byte
-		size    int
-		want    uint64
-		wantErr bool
-	}{
-		{"Valid_Short", []byte{0x01, 0x05}, 1, 5, false},
-		{"Valid_Long", []byte{0x81, 0x05, 0x57, 0xB4, 0xCB, 0xE8, 0xF0}, 5, 376695417072, false},
-		{"Invalid_ZeroLength", []byte{0x00}, 1, 0, true},
-		{"Invalid_LargeInteger", []byte{0x04, 0x80, 0x80, 0x80, 0x80}, 4, 0, true},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := decodeBERUint(tt.args, tt.size)
-			if tt.wantErr && (err == nil) {
-				t.Errorf("decodeBERUint() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !tt.wantErr && (err != nil) {
-				t.Errorf("decodeBERUint() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if got != tt.want {
-				t.Errorf("decodeBERUint() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}

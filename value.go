@@ -380,9 +380,12 @@ func (e EndOfMibView) RawValue() any  { return nil }
 func (e EndOfMibView) sealed()        {}
 
 // decodeBERValue parses a BER-encoded value (Varbind) the given BER-encoded value.
-func decodeBERValue(b []byte) (Value, error) {
+// The input is assumed to be the value part of a BER-encoded TLV.
+// The returned value is the decoded value, the number of bytes the value occupies, and an error if any occurred.
+// The number of bytes may be used as an offset to skip over the value in the input.
+func decodeBERValue(b []byte) (Value, int, error) {
 	if len(b) == 0 {
-		return nil, fmt.Errorf("no data")
+		return nil, 0, fmt.Errorf("no data")
 	}
 
 	switch typeTag(b[0]) {
@@ -410,28 +413,29 @@ func decodeBERValue(b []byte) (Value, error) {
 	case tagCounter64:
 		return tryDecode(b[1:], decodeBERUint64, NewCounter64)
 	case tagNull:
-		return Null{}, nil
+		return Null{}, 1, nil
 	case tagNoSuchObject:
-		return NoSuchObject{}, nil
+		return NoSuchObject{}, 1, nil
 	case tagNoSuchInstance:
-		return NoSuchInstance{}, nil
+		return NoSuchInstance{}, 1, nil
 	case tagEndOfMibView:
-		return EndOfMibView{}, nil
+		return EndOfMibView{}, 1, nil
 	}
 
-	return nil, fmt.Errorf("unsupported type tag %d", b[0])
+	return nil, 1, fmt.Errorf("unsupported type tag %d", b[0])
 }
 
 // tryDecode tries to decode the given BER-encoded value using the given decode function and creates a new Value
 // using the given value constructor.
 // This is a helper function to reduce code duplication in decodeBERValue.
-func tryDecode[T any, V Value](b []byte, decodeFn func([]byte) (T, error), valueConstr func(T) V) (Value, error) {
-	v, err := decodeFn(b)
+// Note: the offset is incremented by 1 to account for the type tag which should be parsed before calling this function.
+func tryDecode[T any, V Value](b []byte, decodeFn func([]byte) (T, int, error), valueConstr func(T) V) (Value, int, error) {
+	v, o, err := decodeFn(b)
 	if err != nil {
-		return nil, err
+		return nil, o + 1, err
 	}
 
-	return valueConstr(v), nil
+	return valueConstr(v), o + 1, nil
 }
 
 // decodeBERLength decodes the length of a BER-encoded value.
@@ -482,16 +486,16 @@ func decodeBERLength(b []byte) (length int, offset int, _ error) {
 }
 
 // decodeBERUint decodes a BER-encoded unsigned integer with the given size.
-func decodeBERUint(b []byte, size int) (uint64, error) {
+func decodeBERUint(b []byte, size int) (uint64, int, error) {
 	length, offset, err := decodeBERLength(b)
 	if err != nil {
-		return 0, err
+		return 0, 0, err
 	}
 
 	if length == 0 {
-		return 0, errors.New("zero-length integer")
+		return 0, 0, errors.New("zero-length integer")
 	} else if length > size {
-		return 0, fmt.Errorf("integer too large (%d bytes) to fit into integer of bit-size %d", length, size*8)
+		return 0, 0, fmt.Errorf("integer too large (%d bytes) to fit into integer of bit-size %d", length, size*8)
 	}
 
 	var value uint64
@@ -500,22 +504,20 @@ func decodeBERUint(b []byte, size int) (uint64, error) {
 		value = value<<8 | uint64(b[offset+i])
 	}
 
-	fmt.Printf("value: %X\n", value)
-
-	return value, nil
+	return value, offset + length, nil
 }
 
 // decodeBERInt decodes a BER-encoded integer with the given size.
-func decodeBERInt(b []byte, size int) (int64, error) {
+func decodeBERInt(b []byte, size int) (int64, int, error) {
 	length, offset, err := decodeBERLength(b)
 	if err != nil {
-		return 0, err
+		return 0, 0, err
 	}
 
 	if length == 0 {
-		return 0, errors.New("zero-length integer")
+		return 0, 0, errors.New("zero-length integer")
 	} else if length > size {
-		return 0, fmt.Errorf("integer too large (%d bytes) to fit into integer of bit-size %d", length, size*8)
+		return 0, 0, fmt.Errorf("integer too large (%d bytes) to fit into integer of bit-size %d", length, size*8)
 	}
 
 	var value int64
@@ -529,39 +531,44 @@ func decodeBERInt(b []byte, size int) (int64, error) {
 		value |= -1 << (8 * length)
 	}
 
-	return value, nil
+	return value, offset + length, nil
 }
 
-func decodeBERInt32(b []byte) (int32, error) {
-	v, err := decodeBERInt(b, 4)
+func decodeBERInt32(b []byte) (int32, int, error) {
+	v, o, err := decodeBERInt(b, 4)
 	if err != nil {
-		return 0, err
+		return 0, o, err
 	}
 
-	return int32(v), nil
+	return int32(v), o, nil
 }
 
-func decodeBERUint32(b []byte) (uint32, error) {
-	v, err := decodeBERUint(b, 4)
+func decodeBERUint32(b []byte) (uint32, int, error) {
+	v, o, err := decodeBERUint(b, 4)
 	if err != nil {
-		return 0, err
+		return 0, 0, err
 	}
 
-	return uint32(v), nil
+	return uint32(v), o, nil
 }
 
-func decodeBERUint64(b []byte) (uint64, error) {
+func decodeBERUint64(b []byte) (uint64, int, error) {
 	return decodeBERUint(b, 8)
 }
 
-func decodeBERBytes(b []byte) ([]byte, error) {
-	return nil, errors.New("not implemented")
+func decodeBERBytes(b []byte) ([]byte, int, error) {
+	length, offset, err := decodeBERLength(b)
+	if err != nil {
+		return nil, offset, err
+	}
+
+	return b[offset : offset+length], offset + length, nil
 }
 
-func decodeBERObjectIdentifier(b []byte) (OID, error) {
-	return nil, errors.New("not implemented")
+func decodeBERObjectIdentifier(b []byte) (OID, int, error) {
+	return nil, 0, errors.New("not implemented")
 }
 
-func decodeBERIpAddress(b []byte) (net.IP, error) {
-	return nil, errors.New("not implemented")
+func decodeBERIpAddress(b []byte) (net.IP, int, error) {
+	return nil, 0, errors.New("not implemented")
 }
