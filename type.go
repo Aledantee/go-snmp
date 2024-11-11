@@ -313,6 +313,17 @@ func (t OpaqueDoubleType) ValidateValue(v Value) error {
 }
 func (t OpaqueDoubleType) sealed() {}
 
+type TimeTicksType struct{}
+
+func (t TimeTicksType) String() string { return "TIME TICKS" }
+func (t TimeTicksType) Tag() int       { return int(tagTimeTicks) }
+func (t TimeTicksType) Name() string   { return "TIME TICKS" }
+func (t TimeTicksType) Base() Type     { return t }
+func (t TimeTicksType) ValidateValue(v Value) error {
+	return assertSameType(v.Type(), t)
+}
+func (t TimeTicksType) sealed() {}
+
 type NullType struct{}
 
 func (n NullType) String() string {
@@ -327,16 +338,59 @@ func (n NullType) Name() string {
 func (n NullType) Base() Type {
 	return n
 }
-
 func (n NullType) ValidateValue(v Value) error {
-	//TODO implement me
-	panic("implement me")
+	return assertSameType(v.Type(), n)
 }
+func (n NullType) sealed() {}
 
-func (n NullType) sealed() {
-	//TODO implement me
-	panic("implement me")
+type NoSuchObjectType struct{}
+
+func (n NoSuchObjectType) String() string {
+	return "NO SUCH OBJECT"
 }
+func (n NoSuchObjectType) Tag() int {
+	return int(tagNoSuchObject)
+}
+func (n NoSuchObjectType) Name() string {
+	return "NO SUCH OBJECT"
+}
+func (n NoSuchObjectType) Base() Type {
+	return n
+}
+func (n NoSuchObjectType) ValidateValue(v Value) error {
+	return assertSameType(v.Type(), n)
+}
+func (n NoSuchObjectType) sealed() {}
+
+type NoSuchInstanceType struct{}
+
+func (n NoSuchInstanceType) String() string {
+	return "NO SUCH INSTANCE"
+}
+func (n NoSuchInstanceType) Tag() int {
+	return int(tagNoSuchInstance)
+}
+func (n NoSuchInstanceType) Name() string {
+	return "NO SUCH INSTANCE"
+}
+func (n NoSuchInstanceType) Base() Type {
+	return n
+}
+func (n NoSuchInstanceType) ValidateValue(v Value) error {
+	return assertSameType(v.Type(), n)
+}
+func (n NoSuchInstanceType) sealed() {}
+
+type EndOfMibViewType struct{}
+
+func (n EndOfMibViewType) String() string { return "END OF MIB VIEW" }
+func (n EndOfMibViewType) Tag() int       { return int(tagEndOfMibView) }
+func (n EndOfMibViewType) Name() string   { return "END OF MIB VIEW" }
+func (n EndOfMibViewType) Base() Type     { return n }
+func (n EndOfMibViewType) ValidateValue(v Value) error {
+	return assertSameType(v.Type(), n)
+}
+func (n EndOfMibViewType) sealed() {}
 
 type typeTag int
 

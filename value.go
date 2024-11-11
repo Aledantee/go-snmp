@@ -6,6 +6,7 @@ import (
 	"github.com/bits-and-blooms/bitset"
 	"net"
 	"strconv"
+	"time"
 )
 
 // Value is the interface implemented by all SNMP value types. Sealed.
@@ -308,6 +309,30 @@ func (o OpaqueDouble) RawValue() any {
 }
 func (o OpaqueDouble) sealed() {}
 
+type TimeTicks struct {
+	Value time.Duration
+}
+
+// NewTimeTicks creates a new TimeTicks value.
+func NewTimeTicks(value time.Duration) TimeTicks {
+	return TimeTicks{Value: value}
+}
+
+// NewTimeTicksFromHundredths creates a new TimeTicks value from the given value in hundredths of a second, i.e.
+// the representation used in SNMP.
+func NewTimeTicksFromHundredths(value uint32) TimeTicks {
+	return NewTimeTicks(time.Duration(value) * 100 * time.Millisecond)
+}
+
+func (t TimeTicks) String() string {
+	return t.Value.String()
+}
+func (t TimeTicks) Type() Type {
+	return TimeTicksType{}
+}
+func (t TimeTicks) RawValue() any { return t.Value }
+func (t TimeTicks) sealed()       {}
+
 type Null struct{}
 
 func (n Null) String() string {
@@ -321,31 +346,114 @@ func (n Null) RawValue() any {
 }
 func (n Null) sealed() {}
 
+// NoSuchObject is a value indicating that the object does not exist on the SNMP agent.
+// Should be interpreted as an error (and will be returned as such by the client).
+type NoSuchObject struct{}
+
+func (n NoSuchObject) String() string {
+	return "NO SUCH OBJECT"
+}
+func (n NoSuchObject) Type() Type {
+	return NoSuchObjectType{}
+}
+func (n NoSuchObject) RawValue() any {
+	return nil
+}
+func (n NoSuchObject) sealed() {}
+
+// NoSuchInstance is a value indicating that the instance does not exist on the SNMP agent.
+// Should be interpreted as an error (and will be returned as such by the client).
+type NoSuchInstance struct{}
+
+func (n NoSuchInstance) String() string { return "NO SUCH INSTANCE" }
+func (n NoSuchInstance) Type() Type     { return NoSuchInstanceType{} }
+func (n NoSuchInstance) RawValue() any  { return nil }
+func (n NoSuchInstance) sealed()        {}
+
+// EndOfMibView is a value indicating the end of the MIB view.
+// Should be interpreted as an error (and will be returned as such by the client).
+type EndOfMibView struct{}
+
+func (e EndOfMibView) String() string { return "END OF MIB VIEW" }
+func (e EndOfMibView) Type() Type     { return EndOfMibViewType{} }
+func (e EndOfMibView) RawValue() any  { return nil }
+func (e EndOfMibView) sealed()        {}
+
 // decodeBERValue parses a BER-encoded value (Varbind) the given BER-encoded value.
-// NoSuchObject, NoSuchInstance, and EndOfMibView are not valid values and return an error.
 func decodeBERValue(b []byte) (Value, error) {
 	if len(b) == 0 {
 		return nil, fmt.Errorf("no data")
 	}
 
 	switch typeTag(b[0]) {
-	case tagInteger, tagUTnteger32:
+	case tagInteger:
+		// Integer is internally represented as int32, so we decode it as int32 and convert it to int.
+		return tryDecode(b[1:], decodeBERInt32, func(t int32) Integer {
+			return NewInteger(int(t))
+		})
+	case tagUTnteger32:
+		return tryDecode(b[1:], decodeBERUint32, NewUInteger32)
 	case tagOctetString:
-	case tagNull:
+		return tryDecode(b[1:], decodeBERBytes, NewOctetString)
 	case tagObjectIdentifier:
+		return tryDecode(b[1:], decodeBERObjectIdentifier, NewObjectIdentifier)
 	case tagIpAddress:
+		return tryDecode(b[1:], decodeBERIpAddress, NewIPAddress)
 	case tagCounter32:
+		return tryDecode(b[1:], decodeBERUint32, NewCounter32)
 	case tagGauge32:
+		return tryDecode(b[1:], decodeBERUint32, NewUInteger32)
 	case tagTimeTicks:
+		return tryDecode(b[1:], decodeBERUint32, NewTimeTicksFromHundredths)
 	case tagOpaque:
+		return tryDecode(b[1:], decodeBERBytes, NewOpaque)
 	case tagCounter64:
+		return tryDecode(b[1:], decodeBERUint64, NewCounter64)
+	case tagNull:
+		return Null{}, nil
 	case tagNoSuchObject:
-		return nil, errors.New("no such object")
+		return NoSuchObject{}, nil
 	case tagNoSuchInstance:
-		return nil, errors.New("no such instance")
+		return NoSuchInstance{}, nil
 	case tagEndOfMibView:
-		return nil, errors.New("end of MIB view")
+		return EndOfMibView{}, nil
 	}
 
 	return nil, fmt.Errorf("unsupported type tag %d", b[0])
+}
+
+// tryDecode tries to decode the given BER-encoded value using the given decode function and creates a new Value
+// using the given value constructor.
+// This is a helper function to reduce code duplication in decodeBERValue.
+func tryDecode[T any, V Value](b []byte, decodeFn func([]byte) (T, error), valueConstr func(T) V) (Value, error) {
+	v, err := decodeFn(b)
+	if err != nil {
+		return nil, err
+	}
+
+	return valueConstr(v), nil
+}
+
+func decodeBERInt32(b []byte) (int32, error) {
+	return 0, errors.New("not implemented")
+}
+
+func decodeBERUint32(b []byte) (uint32, error) {
+	return 0, errors.New("not implemented")
+}
+
+func decodeBERUint64(b []byte) (uint64, error) {
+	return 0, errors.New("not implemented")
+}
+
+func decodeBERBytes(b []byte) ([]byte, error) {
+	return nil, errors.New("not implemented")
+}
+
+func decodeBERObjectIdentifier(b []byte) (OID, error) {
+	return nil, errors.New("not implemented")
+}
+
+func decodeBERIpAddress(b []byte) (net.IP, error) {
+	return nil, errors.New("not implemented")
 }
