@@ -434,6 +434,49 @@ func tryDecode[T any, V Value](b []byte, decodeFn func([]byte) (T, error), value
 	return valueConstr(v), nil
 }
 
+// decodeBERLength decodes the length of a BER-encoded value.
+// It is assumed that the first byte of the input is the first byte of the length field.
+//
+// The length is encoded as a variable-length integer, which may be in one of the following forms:
+//   - Short form: The length is encoded in the lower 7 bits of the byte. The most significant bit is 0.
+//   - Long form: The lower 7 bits of the byte are the number of bytes used to encode the length. The most significant
+//     bit is 1. The following bytes encode the length as a big-endian integer.
+//
+// Returns the length and the number of bytes used to encode the length as an offset to facilitate skipping over the
+// length field.
+// Adapted from https://github.com/gosnmp/gosnmp
+func decodeBERLength(b []byte) (length int, offset int, _ error) {
+	if len(b) == 0 {
+		return 0, 0, fmt.Errorf("no data")
+	}
+
+	// Short form - interpret the byte as the length and return it
+	if b[0] <= 0x7F {
+		return int(b[0]), 1, nil
+	}
+
+	// Long form - interpret the byte as the number of bytes used to encode the length
+	// Then read the following bytes as the length
+	lengthLength := int(b[0] & 0x7f)
+	if lengthLength > len(b)-1 {
+		return 0, 0, fmt.Errorf("length is longer than the remaining data: %d > %d", lengthLength, len(b)-1)
+	}
+
+	for i := 0; i < lengthLength; i++ {
+		// Left shift the length by 8 bits to  and add the next byte
+		length = length<<8 | int(b[i+1])
+	}
+
+	// Check for overflow and too long length
+	if length < 0 {
+		return 0, 0, fmt.Errorf("negative length (overflow): %d", length)
+	} else if length > len(b)-1-lengthLength {
+		return 0, 0, fmt.Errorf("length is longer than the remaining data: %d > %d", length, len(b)-1-lengthLength)
+	}
+
+	return length, lengthLength + 1, nil // +1 for the first byte indicating the long form
+}
+
 func decodeBERInt32(b []byte) (int32, error) {
 	return 0, errors.New("not implemented")
 }
