@@ -446,6 +446,9 @@ func tryDecode[T any, V Value](b []byte, decodeFn func([]byte) (T, error), value
 // length field.
 // Adapted from https://github.com/gosnmp/gosnmp
 func decodeBERLength(b []byte) (length int, offset int, _ error) {
+	// Special case for empty octet strings deliberately omitted
+	// That case should be handled by the octet string decoder itself
+
 	if len(b) == 0 {
 		return 0, 0, fmt.Errorf("no data")
 	}
