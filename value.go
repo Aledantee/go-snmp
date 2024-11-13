@@ -563,10 +563,10 @@ func decodeBERBytes(b []byte) ([]byte, []byte, error) {
 	return b[:length], b[length:], nil
 }
 
-func decodeBERObjectIdentifier(b []byte) (OID, int, error) {
-	return nil, 0, errors.New("not implemented")
+func decodeBERObjectIdentifier(b []byte) (OID, []byte, error) {
+	return nil, b, errors.New("not implemented")
 }
 
-func decodeBERIpAddress(b []byte) (net.IP, int, error) {
-	return nil, 0, errors.New("not implemented")
+func decodeBERIpAddress(b []byte) (net.IP, []byte, error) {
+	return nil, b, errors.New("not implemented")
 }
