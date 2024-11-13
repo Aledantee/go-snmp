@@ -381,11 +381,11 @@ func (e EndOfMibView) sealed()        {}
 
 // decodeBERValue parses a BER-encoded value (Varbind) the given BER-encoded value.
 // The input is assumed to be the value part of a BER-encoded TLV.
-// The returned value is the decoded value, the number of bytes the value occupies, and an error if any occurred.
+// The returned value is the decoded value, the input slice offset by the number of bytes used to decode the value and an error, if any.
 // The number of bytes may be used as an offset to skip over the value in the input.
-func decodeBERValue(b []byte) (Value, int, error) {
+func decodeBERValue(b []byte) (Value, []byte, error) {
 	if len(b) == 0 {
-		return nil, 0, fmt.Errorf("no data")
+		return nil, b, fmt.Errorf("no data")
 	}
 
 	switch typeTag(b[0]) {
@@ -413,29 +413,28 @@ func decodeBERValue(b []byte) (Value, int, error) {
 	case tagCounter64:
 		return tryDecode(b[1:], decodeBERUint64, NewCounter64)
 	case tagNull:
-		return Null{}, 1, nil
+		return Null{}, b[1:], nil
 	case tagNoSuchObject:
-		return NoSuchObject{}, 1, nil
+		return NoSuchObject{}, b[1:], nil
 	case tagNoSuchInstance:
-		return NoSuchInstance{}, 1, nil
+		return NoSuchInstance{}, b[1:], nil
 	case tagEndOfMibView:
-		return EndOfMibView{}, 1, nil
+		return EndOfMibView{}, b[1:], nil
 	}
 
-	return nil, 1, fmt.Errorf("unsupported type tag %d", b[0])
+	return nil, b, fmt.Errorf("unsupported type tag %d", b[0])
 }
 
 // tryDecode tries to decode the given BER-encoded value using the given decode function and creates a new Value
 // using the given value constructor.
 // This is a helper function to reduce code duplication in decodeBERValue.
-// Note: the offset is incremented by 1 to account for the type tag which should be parsed before calling this function.
-func tryDecode[T any, V Value](b []byte, decodeFn func([]byte) (T, int, error), valueConstr func(T) V) (Value, int, error) {
+func tryDecode[T any, V Value](b []byte, decodeFn func([]byte) (T, []byte, error), valueConstr func(T) V) (Value, []byte, error) {
 	v, o, err := decodeFn(b)
 	if err != nil {
-		return nil, o + 1, err
+		return nil, o, err
 	}
 
-	return valueConstr(v), o + 1, nil
+	return valueConstr(v), o, nil
 }
 
 // decodeBERLength decodes the length of a BER-encoded value.
@@ -446,28 +445,27 @@ func tryDecode[T any, V Value](b []byte, decodeFn func([]byte) (T, int, error), 
 //   - Long form: The lower 7 bits of the byte are the number of bytes used to encode the length. The most significant
 //     bit is 1. The following bytes encode the length as a big-endian integer.
 //
-// Returns the length and the number of bytes used to encode the length as an offset to facilitate skipping over the
-// length field.
+// Returns the length and the input slice offset by the number of bytes used to decode the length.
 // Adapted from https://github.com/gosnmp/gosnmp
-func decodeBERLength(b []byte) (length int, offset int, _ error) {
+func decodeBERLength(b []byte) (length int, tail []byte, _ error) {
 	// Special case for empty octet strings deliberately omitted
 	// That case should be handled by the octet string decoder itself
 
 	if len(b) == 0 {
-		return 0, 0, fmt.Errorf("no data")
+		return 0, b, fmt.Errorf("no data")
 	}
 
 	// Short form - interpret the byte as the length and return it
 	// No check for negative values is needed as the first bit is by definition 0 for short form
 	if b[0] <= 0x7F { // 0x7F = 127 = 0111 1111
-		return int(b[0]), 1, nil
+		return int(b[0]), b[1:], nil
 	}
 
 	// Long form - interpret the byte as the number of bytes used to encode the length
 	// Then read the following bytes as the length
 	lengthLength := int(b[0] & 0x7f) // 0x7f = 0111 1111
 	if lengthLength > len(b)-1 {
-		return 0, 0, fmt.Errorf("length is longer than the remaining data: %d > %d", lengthLength, len(b)-1)
+		return 0, b, fmt.Errorf("length of length is longer than the remaining data: %d > %d", lengthLength, len(b)-1)
 	}
 
 	for i := 0; i < lengthLength; i++ {
@@ -477,53 +475,53 @@ func decodeBERLength(b []byte) (length int, offset int, _ error) {
 
 	// Check for overflow and too long length
 	if length < 0 {
-		return 0, 0, fmt.Errorf("negative length (overflow): %d", length)
+		return 0, b, fmt.Errorf("negative length (overflow): %d", length)
 	} else if length > len(b)-1-lengthLength {
-		return 0, 0, fmt.Errorf("length is longer than the remaining data: %d > %d", length, len(b)-1-lengthLength)
+		return 0, b, fmt.Errorf("length is longer than the remaining data: %d > %d", length, len(b)-1-lengthLength)
 	}
 
-	return length, lengthLength + 1, nil // +1 for the first byte indicating the long form
+	return length, b[lengthLength+1:], nil // +1 for the first byte indicating the long form
 }
 
 // decodeBERUint decodes a BER-encoded unsigned integer with the given size.
-func decodeBERUint(b []byte, size int) (uint64, int, error) {
-	length, offset, err := decodeBERLength(b)
+func decodeBERUint(b []byte, size int) (uint64, []byte, error) {
+	length, b, err := decodeBERLength(b)
 	if err != nil {
-		return 0, 0, err
+		return 0, b, err
 	}
 
 	if length == 0 {
-		return 0, 0, errors.New("zero-length integer")
+		return 0, b, errors.New("zero-length integer")
 	} else if length > size {
-		return 0, 0, fmt.Errorf("integer too large (%d bytes) to fit into integer of bit-size %d", length, size*8)
+		return 0, b, fmt.Errorf("integer too large (%d bytes) to fit into integer of bit-size %d", length, size*8)
 	}
 
 	var value uint64
 	for i := 0; i < length; i++ {
 		// Left shift the value by 8 bits and add the next byte
-		value = value<<8 | uint64(b[offset+i])
+		value = value<<8 | uint64(b[i])
 	}
 
-	return value, offset + length, nil
+	return value, b[length:], nil
 }
 
 // decodeBERInt decodes a BER-encoded integer with the given size.
-func decodeBERInt(b []byte, size int) (int64, int, error) {
-	length, offset, err := decodeBERLength(b)
+func decodeBERInt(b []byte, size int) (int64, []byte, error) {
+	length, b, err := decodeBERLength(b)
 	if err != nil {
-		return 0, 0, err
+		return 0, b, err
 	}
 
 	if length == 0 {
-		return 0, 0, errors.New("zero-length integer")
+		return 0, b, errors.New("zero-length integer")
 	} else if length > size {
-		return 0, 0, fmt.Errorf("integer too large (%d bytes) to fit into integer of bit-size %d", length, size*8)
+		return 0, b, fmt.Errorf("integer too large (%d bytes) to fit into integer of bit-size %d", length, size*8)
 	}
 
 	var value int64
 	for i := 0; i < length; i++ {
 		// Left shift the value by 8 bits and add the next byte
-		value = value<<8 | int64(b[offset+i])
+		value = value<<8 | int64(b[i])
 	}
 
 	// Sign-extend the value if necessary
@@ -531,38 +529,38 @@ func decodeBERInt(b []byte, size int) (int64, int, error) {
 		value |= -1 << (8 * length)
 	}
 
-	return value, offset + length, nil
+	return value, b[length:], nil
 }
 
-func decodeBERInt32(b []byte) (int32, int, error) {
-	v, o, err := decodeBERInt(b, 4)
+func decodeBERInt32(b []byte) (int32, []byte, error) {
+	v, b, err := decodeBERInt(b, 4)
 	if err != nil {
-		return 0, o, err
+		return 0, b, err
 	}
 
-	return int32(v), o, nil
+	return int32(v), b, nil
 }
 
-func decodeBERUint32(b []byte) (uint32, int, error) {
-	v, o, err := decodeBERUint(b, 4)
+func decodeBERUint32(b []byte) (uint32, []byte, error) {
+	v, b, err := decodeBERUint(b, 4)
 	if err != nil {
-		return 0, 0, err
+		return 0, b, err
 	}
 
-	return uint32(v), o, nil
+	return uint32(v), b, nil
 }
 
-func decodeBERUint64(b []byte) (uint64, int, error) {
+func decodeBERUint64(b []byte) (uint64, []byte, error) {
 	return decodeBERUint(b, 8)
 }
 
-func decodeBERBytes(b []byte) ([]byte, int, error) {
-	length, offset, err := decodeBERLength(b)
+func decodeBERBytes(b []byte) ([]byte, []byte, error) {
+	length, b, err := decodeBERLength(b)
 	if err != nil {
-		return nil, offset, err
+		return nil, b, err
 	}
 
-	return b[offset : offset+length], offset + length, nil
+	return b[:length], b[length:], nil
 }
 
 func decodeBERObjectIdentifier(b []byte) (OID, int, error) {
