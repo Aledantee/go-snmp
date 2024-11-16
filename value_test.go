@@ -22,7 +22,7 @@ func TestDecodeBERLength(t *testing.T) {
 		{
 			name:    "Valid Long Form",
 			input:   []byte{0x81, 0x01, 0x02},
-			expLen:  2,
+			expLen:  1,
 			expTail: []byte{0x02},
 		},
 		{
@@ -43,7 +43,7 @@ func TestDecodeBERLength(t *testing.T) {
 		},
 		{
 			name:     "Invalid Long Form Overflow",
-			input:    []byte{0x87, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x01},
+			input:    []byte{0x88, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x01},
 			expError: true,
 		},
 	}
