@@ -27,295 +27,295 @@ type Value interface {
 }
 
 type Boolean struct {
-	Value bool
+	Bool bool
 }
 
 // NewBoolean creates a new Boolean value.
 func NewBoolean(value bool) Boolean {
-	return Boolean{Value: value}
+	return Boolean{Bool: value}
 }
 
 func (b Boolean) String() string {
-	return strconv.FormatBool(b.Value)
+	return strconv.FormatBool(b.Bool)
 }
 func (b Boolean) Type() Type {
 	return BooleanType{}
 }
 func (b Boolean) RawValue() any {
-	return b.Value
+	return b.Bool
 }
 func (b Boolean) sealed() {}
 
 type Integer struct {
-	Value int
+	Integer int
 }
 
 // NewInteger creates a new Integer value.
 func NewInteger(value int) Integer {
-	return Integer{Value: value}
+	return Integer{Integer: value}
 }
 
 func (i Integer) String() string {
-	return strconv.FormatInt(int64(i.Value), 10)
+	return strconv.FormatInt(int64(i.Integer), 10)
 }
 func (i Integer) Type() Type {
 	return IntegerType{}
 }
 func (i Integer) RawValue() any {
-	return i.Value
+	return i.Integer
 }
 func (i Integer) sealed() {
 
 }
 
 type BitString struct {
-	Value *bitset.BitSet
+	BitSet *bitset.BitSet
 }
 
 // NewBitString creates a new BitString value.
 func NewBitString(value *bitset.BitSet) BitString {
-	return BitString{Value: value}
+	return BitString{BitSet: value}
 }
 
 func (b BitString) String() string {
-	return b.Value.String()
+	return b.BitSet.String()
 }
 func (b BitString) Type() Type {
 	return BitStringType{}
 }
 func (b BitString) RawValue() any {
-	return b.Value
+	return b.BitSet
 }
 func (b BitString) sealed() {}
 
 type OctetString struct {
-	Value []byte
+	Bytes []byte
 }
 
 // NewOctetString creates a new OctetString value.
 func NewOctetString(value []byte) OctetString {
-	return OctetString{Value: value}
+	return OctetString{Bytes: value}
 }
 
 func (o OctetString) String() string {
-	return string(o.Value)
+	return string(o.Bytes)
 }
 func (o OctetString) Type() Type {
 	return OctetStringType{}
 }
 func (o OctetString) RawValue() any {
-	return o.Value
+	return o.Bytes
 }
 func (o OctetString) sealed() {}
 
 type ObjectIdentifier struct {
-	Value OID
+	OId OID
 }
 
 // NewObjectIdentifier creates a new ObjectIdentifier value.
 func NewObjectIdentifier(value OID) ObjectIdentifier {
-	return ObjectIdentifier{Value: value}
+	return ObjectIdentifier{OId: value}
 }
 
 func (o ObjectIdentifier) String() string {
-	return o.Value.String()
+	return o.OId.String()
 }
 func (o ObjectIdentifier) Type() Type {
 	return ObjectIdentifierType{}
 }
 func (o ObjectIdentifier) RawValue() any {
-	return o.Value
+	return o.OId
 }
 func (o ObjectIdentifier) sealed() {}
 
 type ObjectDescription struct {
-	Value string
+	Str string
 }
 
 // NewObjectDescription creates a new ObjectDescription value.
 func NewObjectDescription(value string) ObjectDescription {
-	return ObjectDescription{Value: value}
+	return ObjectDescription{Str: value}
 }
 
 func (o ObjectDescription) String() string {
-	return o.Value
+	return o.Str
 }
 func (o ObjectDescription) Type() Type {
 	return ObjectDescriptionType{}
 }
 func (o ObjectDescription) RawValue() any {
-	return o.Value
+	return o.Str
 }
 func (o ObjectDescription) sealed() {}
 
 type IPAddress struct {
-	Value net.IP
+	IP net.IP
 }
 
 // NewIPAddress creates a new IPAddress value.
 func NewIPAddress(value net.IP) IPAddress {
-	return IPAddress{Value: value}
+	return IPAddress{IP: value}
 }
 
 func (i IPAddress) String() string {
-	return i.Value.String()
+	return i.IP.String()
 }
 func (i IPAddress) Type() Type {
 	return IPAddressType{}
 }
 func (i IPAddress) RawValue() any {
-	return i.Value
+	return i.IP
 }
 func (i IPAddress) sealed() {}
 
 type Counter32 struct {
-	Value uint32
+	UInt32 uint32
 }
 
 // NewCounter32 creates a new Counter32 value.
 func NewCounter32(value uint32) Counter32 {
-	return Counter32{Value: value}
+	return Counter32{UInt32: value}
 }
 
 func (c Counter32) String() string {
-	return strconv.FormatUint(uint64(c.Value), 10)
+	return strconv.FormatUint(uint64(c.UInt32), 10)
 }
 func (c Counter32) Type() Type {
 	return Counter32Type{}
 }
 func (c Counter32) RawValue() any {
-	return c.Value
+	return c.UInt32
 }
 func (c Counter32) sealed() {}
 
 type Opaque struct {
-	Value []byte
+	Bytes []byte
 }
 
 // NewOpaque creates a new Opaque value.
 func NewOpaque(value []byte) Opaque {
-	return Opaque{Value: value}
+	return Opaque{Bytes: value}
 }
 
 func (o Opaque) String() string {
-	return fmt.Sprintf("%x", o.Value)
+	return fmt.Sprintf("%x", o.Bytes)
 }
 func (o Opaque) Type() Type {
 	return OpaqueType{}
 }
 func (o Opaque) RawValue() any {
-	return o.Value
+	return o.Bytes
 }
 func (o Opaque) sealed() {}
 
 type NsapAddress struct {
 	// FIXME: Find better representation
-	Value []byte
+	Bytes []byte
 }
 
 // NewNsapAddress creates a new NsapAddress value.
 func NewNsapAddress(value []byte) NsapAddress {
-	return NsapAddress{Value: value}
+	return NsapAddress{Bytes: value}
 }
 
 func (n NsapAddress) String() string {
-	return fmt.Sprintf("%x", n.Value)
+	return fmt.Sprintf("%x", n.Bytes)
 }
 func (n NsapAddress) Type() Type {
 	return NsapAddressType{}
 }
 func (n NsapAddress) RawValue() any {
-	return n.Value
+	return n.Bytes
 }
 func (n NsapAddress) sealed() {}
 
 type Counter64 struct {
-	Value uint64
+	Int64 uint64
 }
 
 // NewCounter64 creates a new Counter64 value.
 func NewCounter64(value uint64) Counter64 {
-	return Counter64{Value: value}
+	return Counter64{Int64: value}
 }
 
 func (c Counter64) String() string {
-	return strconv.FormatUint(c.Value, 10)
+	return strconv.FormatUint(c.Int64, 10)
 }
 func (c Counter64) Type() Type {
 	return Counter64Type{}
 }
 func (c Counter64) RawValue() any {
-	return c.Value
+	return c.Int64
 }
 func (c Counter64) sealed() {}
 
 type UInteger32 struct {
-	Value uint32
+	UInt32 uint32
 }
 
 // NewUInteger32 creates a new UInteger32 value.
 func NewUInteger32(value uint32) UInteger32 {
-	return UInteger32{Value: value}
+	return UInteger32{UInt32: value}
 }
 
 func (u UInteger32) String() string {
-	return strconv.FormatUint(uint64(u.Value), 10)
+	return strconv.FormatUint(uint64(u.UInt32), 10)
 }
 func (u UInteger32) Type() Type {
 	return UInteger32Type{}
 }
 func (u UInteger32) RawValue() any {
-	return u.Value
+	return u.UInt32
 }
 func (u UInteger32) sealed() {}
 
 type OpaqueFloat struct {
-	Value float32
+	Float32 float32
 }
 
 // NewOpaqueFloat creates a new OpaqueFloat value.
 func NewOpaqueFloat(value float32) OpaqueFloat {
-	return OpaqueFloat{Value: value}
+	return OpaqueFloat{Float32: value}
 }
 
 func (o OpaqueFloat) String() string {
-	return strconv.FormatFloat(float64(o.Value), 'f', -1, 32)
+	return strconv.FormatFloat(float64(o.Float32), 'f', -1, 32)
 }
 func (o OpaqueFloat) Type() Type {
 	return OpaqueFloatType{}
 }
 func (o OpaqueFloat) RawValue() any {
-	return o.Value
+	return o.Float32
 }
 func (o OpaqueFloat) sealed() {}
 
 type OpaqueDouble struct {
-	Value float64
+	Float64 float64
 }
 
 // NewOpaqueDouble creates a new OpaqueDouble value.
 func NewOpaqueDouble(value float64) OpaqueDouble {
-	return OpaqueDouble{Value: value}
+	return OpaqueDouble{Float64: value}
 }
 
 func (o OpaqueDouble) String() string {
-	return strconv.FormatFloat(o.Value, 'f', -1, 64)
+	return strconv.FormatFloat(o.Float64, 'f', -1, 64)
 }
 func (o OpaqueDouble) Type() Type {
 	return OpaqueDoubleType{}
 }
 func (o OpaqueDouble) RawValue() any {
-	return o.Value
+	return o.Float64
 }
 func (o OpaqueDouble) sealed() {}
 
 type TimeTicks struct {
-	Value time.Duration
+	Duration time.Duration
 }
 
 // NewTimeTicks creates a new TimeTicks value.
 func NewTimeTicks(value time.Duration) TimeTicks {
-	return TimeTicks{Value: value}
+	return TimeTicks{Duration: value}
 }
 
 // NewTimeTicksFromHundredths creates a new TimeTicks value from the given value in hundredths of a second, i.e.
@@ -325,12 +325,12 @@ func NewTimeTicksFromHundredths(value uint32) TimeTicks {
 }
 
 func (t TimeTicks) String() string {
-	return t.Value.String()
+	return t.Duration.String()
 }
 func (t TimeTicks) Type() Type {
 	return TimeTicksType{}
 }
-func (t TimeTicks) RawValue() any { return t.Value }
+func (t TimeTicks) RawValue() any { return t.Duration }
 func (t TimeTicks) sealed()       {}
 
 type Null struct{}
@@ -444,8 +444,11 @@ func tryDecode[T any, V Value](b []byte, decodeFn func([]byte) (T, []byte, error
 //   - Short form: The length is encoded in the lower 7 bits of the byte. The most significant bit is 0.
 //   - Long form: The lower 7 bits of the byte are the number of bytes used to encode the length. The most significant
 //     bit is 1. The following bytes encode the length as a big-endian integer.
+//   - Indefinite: The length byte is 0x80. The length is not specified and the value is terminated by a special
+//     end-of-contents byte.
 //
 // Returns the length and the input slice offset by the number of bytes used to decode the length.
+// If indefinite length is encountered, the length is returned as -1.
 // Adapted from https://github.com/gosnmp/gosnmp
 func decodeBERLength(b []byte) (length int, tail []byte, _ error) {
 	// Special case for empty octet strings deliberately omitted
@@ -453,6 +456,11 @@ func decodeBERLength(b []byte) (length int, tail []byte, _ error) {
 
 	if len(b) == 0 {
 		return 0, b, fmt.Errorf("no data")
+	}
+
+	// Indefinite length - return -1
+	if b[0] == 0x80 {
+		return -1, b[1:], nil
 	}
 
 	// Short form - interpret the byte as the length and return it
@@ -473,11 +481,9 @@ func decodeBERLength(b []byte) (length int, tail []byte, _ error) {
 		length = length<<8 | int(b[i+1])
 	}
 
-	// Check for overflow and too long length
+	// Check for overflow
 	if length < 0 {
 		return 0, b, fmt.Errorf("negative length (overflow): %d", length)
-	} else if length > len(b)-1-lengthLength {
-		return 0, b, fmt.Errorf("length is longer than the remaining data: %d > %d", length, len(b)-1-lengthLength)
 	}
 
 	return length, b[lengthLength+1:], nil // +1 for the first byte indicating the long form
