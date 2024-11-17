@@ -498,8 +498,12 @@ func decodeBERUInt(b []byte, size int) (uint64, []byte, error) {
 
 	if length == 0 {
 		return 0, b, errors.New("zero-length integer")
-	} else if length > size {
+	}
+	if length > size {
 		return 0, b, fmt.Errorf("integer too large (%d bytes) to fit into integer of bit-size %d", length, size*8)
+	}
+	if length > len(b) {
+		return 0, b, fmt.Errorf("truncated integer: %d bytes, expected %d bytes", length, len(b))
 	}
 
 	var value uint64
@@ -568,6 +572,10 @@ func decodeBERBytes(b []byte) ([]byte, []byte, error) {
 	length, b, err := decodeBERLength(b)
 	if err != nil {
 		return nil, b, err
+	}
+
+	if length > len(b) {
+		return nil, b, fmt.Errorf("truncated bytes: %d bytes, expected %d bytes", length, len(b))
 	}
 
 	return b[:length], b[length:], nil
