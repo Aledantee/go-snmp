@@ -395,7 +395,7 @@ func decodeBERValue(b []byte) (Value, []byte, error) {
 			return NewInteger(int(t))
 		})
 	case tagUTnteger32:
-		return tryDecode(b[1:], decodeBERUint32, NewUInteger32)
+		return tryDecode(b[1:], decodeBERUInt32, NewUInteger32)
 	case tagOctetString:
 		return tryDecode(b[1:], decodeBERBytes, NewOctetString)
 	case tagObjectIdentifier:
@@ -403,15 +403,15 @@ func decodeBERValue(b []byte) (Value, []byte, error) {
 	case tagIpAddress:
 		return tryDecode(b[1:], decodeBERIpAddress, NewIPAddress)
 	case tagCounter32:
-		return tryDecode(b[1:], decodeBERUint32, NewCounter32)
+		return tryDecode(b[1:], decodeBERUInt32, NewCounter32)
 	case tagGauge32:
-		return tryDecode(b[1:], decodeBERUint32, NewUInteger32)
+		return tryDecode(b[1:], decodeBERUInt32, NewUInteger32)
 	case tagTimeTicks:
-		return tryDecode(b[1:], decodeBERUint32, NewTimeTicksFromHundredths)
+		return tryDecode(b[1:], decodeBERUInt32, NewTimeTicksFromHundredths)
 	case tagOpaque:
 		return tryDecode(b[1:], decodeBERBytes, NewOpaque)
 	case tagCounter64:
-		return tryDecode(b[1:], decodeBERUint64, NewCounter64)
+		return tryDecode(b[1:], decodeBERUInt64, NewCounter64)
 	case tagNull:
 		return Null{}, b[1:], nil
 	case tagNoSuchObject:
@@ -490,7 +490,7 @@ func decodeBERLength(b []byte) (length int, tail []byte, _ error) {
 }
 
 // decodeBERUint decodes a BER-encoded unsigned integer with the given size.
-func decodeBERUint(b []byte, size int) (uint64, []byte, error) {
+func decodeBERUInt(b []byte, size int) (uint64, []byte, error) {
 	length, b, err := decodeBERLength(b)
 	if err != nil {
 		return 0, b, err
@@ -520,8 +520,12 @@ func decodeBERInt(b []byte, size int) (int64, []byte, error) {
 
 	if length == 0 {
 		return 0, b, errors.New("zero-length integer")
-	} else if length > size {
+	}
+	if length > size {
 		return 0, b, fmt.Errorf("integer too large (%d bytes) to fit into integer of bit-size %d", length, size*8)
+	}
+	if length > len(b) {
+		return 0, b, fmt.Errorf("truncated integer: %d bytes, expected %d bytes", length, len(b))
 	}
 
 	var value int64
@@ -547,8 +551,8 @@ func decodeBERInt32(b []byte) (int32, []byte, error) {
 	return int32(v), b, nil
 }
 
-func decodeBERUint32(b []byte) (uint32, []byte, error) {
-	v, b, err := decodeBERUint(b, 4)
+func decodeBERUInt32(b []byte) (uint32, []byte, error) {
+	v, b, err := decodeBERUInt(b, 4)
 	if err != nil {
 		return 0, b, err
 	}
@@ -556,8 +560,8 @@ func decodeBERUint32(b []byte) (uint32, []byte, error) {
 	return uint32(v), b, nil
 }
 
-func decodeBERUint64(b []byte) (uint64, []byte, error) {
-	return decodeBERUint(b, 8)
+func decodeBERUInt64(b []byte) (uint64, []byte, error) {
+	return decodeBERUInt(b, 8)
 }
 
 func decodeBERBytes(b []byte) ([]byte, []byte, error) {

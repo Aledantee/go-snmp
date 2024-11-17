@@ -65,3 +65,48 @@ func TestDecodeBERLength(t *testing.T) {
 		})
 	}
 }
+
+func TestDecodeBERInt32(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    []byte
+		expValue int32
+		expTail  []byte
+		expError bool
+	}{
+		{
+			name:     "Valid Positive",
+			input:    []byte{0x01, 0x7F, 0x75},
+			expValue: 127,
+			expTail:  []byte{0x75},
+		},
+		{
+			name:     "Valid Negative",
+			input:    []byte{0x01, 0xFF},
+			expValue: -1,
+			expTail:  []byte{},
+		},
+		{
+			name:     "Invalid Truncated",
+			input:    []byte{0x01},
+			expError: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotValue, gotTail, err := decodeBERInt32(tt.input)
+
+			if !tt.expError {
+				if gotValue != tt.expValue {
+					t.Errorf("expected value %d, got %d", tt.expValue, gotValue)
+				}
+				if !bytes.Equal(gotTail, tt.expTail) {
+					t.Errorf("expected tail %v, got %v", tt.expTail, gotTail)
+				}
+			} else if err == nil {
+				t.Errorf("expected error, got no error and value %d with tail %v", gotValue, gotTail)
+			}
+		})
+	}
+}
