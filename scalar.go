@@ -1,6 +1,9 @@
 package snmp
 
-import "fmt"
+import (
+	"context"
+	"fmt"
+)
 
 // A ScalarNode value may be used to perform type-safe GET/SET requests on a client.
 type ScalarNode[V Value] struct {
@@ -32,8 +35,8 @@ type ScalarNodeValue[V Value] struct {
 
 // GetScalar performs a GET request on the client for the provided ScalarNode.
 // Used to implement type-safe GET requests.
-func GetScalar[V Value](c Client, node *ScalarNode[V]) (ScalarNodeValue[V], error) {
-	scalarValue, err := c.Get(node.OID)
+func GetScalar[V Value](ctx context.Context, c Client, node *ScalarNode[V]) (ScalarNodeValue[V], error) {
+	scalarValue, err := c.Get(ctx, node.OID)
 	if err != nil {
 		return ScalarNodeValue[V]{}, err
 	}
@@ -53,6 +56,6 @@ func GetScalar[V Value](c Client, node *ScalarNode[V]) (ScalarNodeValue[V], erro
 
 // SetScalar performs a SET request on the client for the provided ScalarNodeValue.
 // Used to implement type-safe SET requests.
-func SetScalar[V Value](c Client, node ScalarNodeValue[V]) error {
-	return c.Set(ScalarValue{OID: node.Node.OID, Value: node.Value})
+func SetScalar[V Value](ctx context.Context, c Client, node ScalarNodeValue[V]) error {
+	return c.Set(ctx, ScalarValue{OID: node.Node.OID, Value: node.Value})
 }
