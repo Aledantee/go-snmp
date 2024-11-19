@@ -15,6 +15,13 @@ type ScalarNode[V Value] struct {
 	OID OID
 }
 
+// A WritableScalarNode is a ScalarNode that may be used to perform SET requests on a client.
+// The difference between a ScalarNode and a WritableScalarNode is only a semantic one in that a set request on a
+// non-writable scalar node is expected to fail, while a set request on a writable scalar node is expected to succeed.
+type WritableScalarNode[V Value] struct {
+	ScalarNode[V]
+}
+
 // A ScalarValue is a Value associated with an OID.
 // Used by a client as a return value for GET requests and parameter for SET requests.
 type ScalarValue struct {
@@ -56,6 +63,6 @@ func GetScalar[V Value](ctx context.Context, c Client, node *ScalarNode[V]) (Sca
 
 // SetScalar performs a SET request on the client for the provided ScalarNodeValue.
 // Used to implement type-safe SET requests.
-func SetScalar[V Value](ctx context.Context, c Client, node ScalarNodeValue[V]) error {
-	return c.Set(ctx, ScalarValue{OID: node.Node.OID, Value: node.Value})
+func SetScalar[V Value](ctx context.Context, c Client, node WritableScalarNode[V], value V) error {
+	return c.Set(ctx, ScalarValue{OID: node.OID, Value: value})
 }
